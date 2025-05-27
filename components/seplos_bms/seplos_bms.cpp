@@ -27,7 +27,7 @@ void SeplosBms::on_telemetry_data_(const std::vector<uint8_t> &data) {
     return (uint16_t(data[i + 0]) << 8) | (uint16_t(data[i + 1]) << 0);
   };
 
-  ESP_LOGI(TAG, "Telemetry frame (%d bytes) received", data.size());
+  ESP_LOGD(TAG, "Telemetry frame (%d bytes) received", data.size());
   ESP_LOGVV(TAG, "  %s", format_hex_pretty(&data.front(), data.size()).c_str());
 
   // ->
@@ -54,14 +54,14 @@ void SeplosBms::on_telemetry_data_(const std::vector<uint8_t> &data) {
   //   11     0x0C 0xE9      Cell voltage 2                   3305 * 0.001f = 3.305         V
   //   ...    ...            ...
   //   39     0x0C 0xD8      Cell voltage 16                                                V
-  float min_cell_voltage = 100.0f;
-  float max_cell_voltage = -100.0f;
-  float average_cell_voltage = 0.0f;
+  uint16_t min_cell_voltage = 10000;
+  uint16_t max_cell_voltage = 0;
+  uint32_t average_cell_voltage = 0;
   uint8_t min_voltage_cell = 0;
   uint8_t max_voltage_cell = 0;
   for (uint8_t i = 0; i < std::min((uint8_t) 16, cells); i++) {
-    float cell_voltage = (float) seplos_get_16bit(9 + (i * 2)) * 0.001f;
-    average_cell_voltage = average_cell_voltage + cell_voltage;
+    uint16_t cell_voltage = seplos_get_16bit(9 + (i * 2));
+    average_cell_voltage +=  cell_voltage;
     if (cell_voltage < min_cell_voltage) {
       min_cell_voltage = cell_voltage;
       min_voltage_cell = i + 1;
@@ -70,16 +70,15 @@ void SeplosBms::on_telemetry_data_(const std::vector<uint8_t> &data) {
       max_cell_voltage = cell_voltage;
       max_voltage_cell = i + 1;
     }
-    this->publish_state_(this->cells_[i].cell_voltage_sensor_, cell_voltage);
+    this->publish_state_(this->cells_[i].cell_voltage_sensor_, 0.001f * (float)cell_voltage);
   }
-  average_cell_voltage = average_cell_voltage / cells;
 
-  this->publish_state_(this->min_cell_voltage_sensor_, min_cell_voltage);
-  this->publish_state_(this->max_cell_voltage_sensor_, max_cell_voltage);
+  this->publish_state_(this->min_cell_voltage_sensor_, 0.001f * min_cell_voltage);
+  this->publish_state_(this->max_cell_voltage_sensor_, 0.001f * max_cell_voltage);
   this->publish_state_(this->max_voltage_cell_sensor_, (float) max_voltage_cell);
   this->publish_state_(this->min_voltage_cell_sensor_, (float) min_voltage_cell);
-  this->publish_state_(this->delta_cell_voltage_sensor_, max_cell_voltage - min_cell_voltage);
-  this->publish_state_(this->average_cell_voltage_sensor_, average_cell_voltage);
+  this->publish_state_(this->delta_cell_voltage_sensor_, 0.001f * (max_cell_voltage - min_cell_voltage));
+  this->publish_state_(this->average_cell_voltage_sensor_, (float)average_cell_voltage / cells);
 
   uint8_t offset = 9 + (cells * 2);
 
@@ -94,8 +93,8 @@ void SeplosBms::on_telemetry_data_(const std::vector<uint8_t> &data) {
   //   50     0x0B 0xA5      Environment temperature          (2981 - 2731) * 0.1f = 25.0          °C
   //   52     0x0B 0xA2      Mosfet temperature               (2978 - 2731) * 0.1f = 24.7          °C
   for (uint8_t i = 0; i < std::min((uint8_t) 6, temperature_sensors); i++) {
-    float raw_temperature = (float) seplos_get_16bit(offset + 1 + (i * 2));
-    this->publish_state_(this->temperatures_[i].temperature_sensor_, (raw_temperature - 2731.0f) * 0.1f);
+    uint16_t raw_temperature = seplos_get_16bit(offset + 1 + (i * 2));
+    this->publish_state_(this->temperatures_[i].temperature_sensor_, (raw_temperature - 2731) * 0.1f);
   }
   offset = offset + 1 + (temperature_sensors * 2);
 
