@@ -10,9 +10,11 @@ DEPENDENCIES = ["seplos_bms"]
 CODEOWNERS = ["@syssi"]
 
 CONF_ONLINE_STATUS = "online_status"
+CONF_ALARM="alarm"
 
 BINARY_SENSORS = [
     CONF_ONLINE_STATUS,
+    COBF_ALARM,
 ]
 
 CONFIG_SCHEMA = SEPLOS_BMS_COMPONENT_SCHEMA.extend(

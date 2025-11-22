@@ -14,6 +14,9 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
   void set_online_status_binary_sensor(binary_sensor::BinarySensor *online_status_binary_sensor) {
     online_status_binary_sensor_ = online_status_binary_sensor;
   }
+  void set_alarm_binary_sensor(binary_sensor::BinarySensor *alarm_binary_sensor) {
+    alarm_binary_sensor_ = alarm_binary_sensor;
+  }
 
   void set_min_cell_voltage_sensor(sensor::Sensor *min_cell_voltage_sensor) {
     min_cell_voltage_sensor_ = min_cell_voltage_sensor;
@@ -80,6 +83,7 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
 
  protected:
   binary_sensor::BinarySensor *online_status_binary_sensor_;
+  binary_sensor::BinarySensor *alarm_binary_sensor_;
 
   sensor::Sensor *min_cell_voltage_sensor_;
   sensor::Sensor *max_cell_voltage_sensor_;
