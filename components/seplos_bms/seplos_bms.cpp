@@ -106,6 +106,9 @@ RemoteInfo:<2000460080620000 10 00000000000000000000000000000000 06 000000000000
         s_disc+= std::format(" {: 2}", i+1);
       }
     }
+    if(!bEqui){
+      s_equi="None";
+    }
     this->publish_state_(this->celldisconnect_text_sensor_,s_disc);
     this->publish_state_(this->cellequalization_text_sensor_,s_equi);
     this->publish_state_(this->cellstatus_text_sensor_,s_cellstatus);
@@ -168,6 +171,9 @@ RemoteInfo:<2000460080620000 10 00000000000000000000000000000000 06 000000000000
     if(u & (1 << 6)) s+=" Output-Connection-Failure";
     if(u & (1 << 7)) s+=" Warn6Bit8";
 
+    if(!bWarning){
+      s="None";
+    }
     this->publish_state_(this->warnings_text_sensor_,s);
     this->publish_state_(this->warning_binary_sensor_, bWarning);
 
