@@ -1,20 +1,18 @@
 substitutions:
-  name: seplos-bms
-  device_description: "Monitor a Boqiang BMS001 via RS485"
+  name: esp32c6-compatibility-test
+  device_description: "Verify the project builds from source on ESP32C6"
   external_components_source: github://syssi/esphome-seplos-bms@main
-  tx_pin: GPIO4
-  rx_pin: GPIO5
 
 esphome:
   name: ${name}
   comment: ${device_description}
-  min_version: 2024.6.0
-  project:
-    name: "syssi.esphome-seplos-bms"
-    version: 1.3.0
+  min_version: 2025.6.0
 
-esp8266:
-  board: d1_mini
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
 
 external_components:
   - source: ${external_components_source}
@@ -28,24 +26,17 @@ ota:
   platform: esphome
 
 logger:
-  level: DEBUG
+  level: VERY_VERBOSE
 
-# If you use Home Assistant please remove this `mqtt` section and uncomment the `api` component!
-# The native API has many advantages over MQTT: https://esphome.io/components/api.html#advantages-over-mqtt
-mqtt:
-  broker: !secret mqtt_host
-  username: !secret mqtt_username
-  password: !secret mqtt_password
-  id: mqtt_client
-
-# api:
+api:
+  reboot_timeout: 0s
 
 uart:
   id: uart_0
   # Please set the default baudrate of your Seplos BMS model here. It's sometimes 19200 baud instead of 9600.
   baud_rate: 9600
-  tx_pin: ${tx_pin}
-  rx_pin: ${rx_pin}
+  tx_pin: GPIO16
+  rx_pin: GPIO17
   # The increased RX buffer size is important because
   # the full BMS response must fit into the buffer
   rx_buffer_size: 384
@@ -62,9 +53,7 @@ seplos_bms:
   # off, off, off, off, off, off, off, off
   address: 0x00
   # Known protocol versions: 0x20 (Seplos), 0x26 (Boqiang)
-  protocol_version: 0x26
-  override_pack: 1
-  override_cell_count: 10
+  protocol_version: 0x20
   seplos_modbus_id: modbus0
   update_interval: 10s
 

@@ -1,25 +1,25 @@
 import esphome.codegen as cg
 from esphome.components import binary_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, DEVICE_CLASS_CONNECTIVITY, ENTITY_CATEGORY_DIAGNOSTIC
 
-from . import CONF_SEPLOS_BMS_ID, SeplosBms
+from . import CONF_SEPLOS_BMS_ID, SEPLOS_BMS_COMPONENT_SCHEMA
 
 DEPENDENCIES = ["seplos_bms"]
 
 CODEOWNERS = ["@syssi"]
 
-CONF_FAN_RUNNING = "fan_running"
+CONF_ONLINE_STATUS = "online_status"
 
 BINARY_SENSORS = [
-    CONF_FAN_RUNNING,
+    CONF_ONLINE_STATUS,
 ]
 
-CONFIG_SCHEMA = cv.Schema(
+CONFIG_SCHEMA = SEPLOS_BMS_COMPONENT_SCHEMA.extend(
     {
-        cv.GenerateID(CONF_SEPLOS_BMS_ID): cv.use_id(SeplosBms),
-        cv.Optional(CONF_FAN_RUNNING): binary_sensor.binary_sensor_schema(
-            icon="mdi:fan"
+        cv.Optional(CONF_ONLINE_STATUS): binary_sensor.binary_sensor_schema(
+            device_class=DEVICE_CLASS_CONNECTIVITY,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
     }
 )
