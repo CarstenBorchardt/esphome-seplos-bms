@@ -205,9 +205,17 @@ float SeplosBms::get_setup_priority() const {
   return setup_priority::BUS - 1.0f;
 }
 
-void SeplosBms::update() {
-  this->track_online_status_();
-  this->send(0x42, this->pack_);
+
+void SeplosBms::update() { 
+  static bool b_telemetry_or_remoteinfo=false;
+  if( b_tele{metry_or_remoteinfo){
+    // Telemetry
+    this->send(0x42, this->pack_); }
+  }else{
+    // Remote info
+    this->send(0x44, this->pack_); }
+  }
+  b_telemetry_or_remoteinfo=!b_telemetry_or_remoteinfo;
 }
 
 void SeplosBms::publish_state_(binary_sensor::BinarySensor *binary_sensor, const bool &state) {
