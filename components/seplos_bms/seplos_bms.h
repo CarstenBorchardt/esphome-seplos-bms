@@ -14,8 +14,11 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
   void set_online_status_binary_sensor(binary_sensor::BinarySensor *online_status_binary_sensor) {
     online_status_binary_sensor_ = online_status_binary_sensor;
   }
-  void set_alarm_binary_sensor(binary_sensor::BinarySensor *alarm_binary_sensor) {
-    alarm_binary_sensor_ = alarm_binary_sensor;
+  void set_warning_binary_sensor(binary_sensor::BinarySensor *warning_binary_sensor) {
+    warning_binary_sensor_ = warning_binary_sensor;
+  }
+  void set_equilization_binary_sensor(binary_sensor::BinarySensor *equilization_binary_sensor) {
+    equilization_binary_sensor_ = equilization_binary_sensor;
   }
 
   void set_min_cell_voltage_sensor(sensor::Sensor *min_cell_voltage_sensor) {
@@ -72,6 +75,12 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
   void set_port_voltage_sensor(sensor::Sensor *port_voltage_sensor) { port_voltage_sensor_ = port_voltage_sensor; }
 
   void set_errors_text_sensor(text_sensor::TextSensor *errors_text_sensor) { errors_text_sensor_ = errors_text_sensor; }
+  void set_systemstatus_text_sensor(text_sensor::TextSensor *systemstatus_text_sensor) { systemstatus_text_sensor_ = systemstatus_text_sensor; }
+  void set_powerstatus_text_sensor(text_sensor::TextSensor *powerstatus_text_sensor) { powerstatus_text_sensor_ = powerstatus_text_sensor; }
+  void set_warnings_text_sensor(text_sensor::TextSensor *warnings_text_sensor) { warnings_text_sensor_ = warnings_text_sensor; }
+  void set_celldisconnect_text_sensor(text_sensor::TextSensor *celldisconnect_text_sensor) { celldisconnect_text_sensor_ = celldisconnect_text_sensor; }
+  void set_cellequalization_text_sensor(text_sensor::TextSensor *cellequalization_text_sensor) { cellequalization_text_sensor_ = cellequalization_text_sensor; }
+  void set_cellstatus_text_sensor(text_sensor::TextSensor *cellstatus_text_sensor) { cellstatus_text_sensor_ = cellstatus_text_sensor; }
 
   void set_override_cell_count(uint8_t override_cell_count) { this->override_cell_count_ = override_cell_count; }
 
@@ -83,7 +92,8 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
 
  protected:
   binary_sensor::BinarySensor *online_status_binary_sensor_;
-  binary_sensor::BinarySensor *alarm_binary_sensor_;
+  binary_sensor::BinarySensor *warning_binary_sensor_;
+  binary_sensor::BinarySensor *equilization_binary_sensor_;
 
   sensor::Sensor *min_cell_voltage_sensor_;
   sensor::Sensor *max_cell_voltage_sensor_;
@@ -105,6 +115,12 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
   sensor::Sensor *port_voltage_sensor_;
 
   text_sensor::TextSensor *errors_text_sensor_;
+  text_sensor::TextSensor *systemstatus_text_sensor_;
+  text_sensor::TextSensor *powerstatus_text_sensor_;
+  text_sensor::TextSensor *warnings_text_sensor_;
+  text_sensor::TextSensor *celldisconnect_text_sensor_;
+  text_sensor::TextSensor *cellequalization_text_sensor_;
+  text_sensor::TextSensor *cellstatus_text_sensor_;
 
   struct Cell {
     sensor::Sensor *cell_voltage_sensor_{nullptr};
@@ -121,6 +137,7 @@ class SeplosBms : public PollingComponent, public seplos_modbus::SeplosModbusDev
   void publish_state_(sensor::Sensor *sensor, float value);
   void publish_state_(text_sensor::TextSensor *text_sensor, const std::string &state);
   void on_telemetry_data_(const std::vector<uint8_t> &data);
+  void on_remoteinfo_data_(const std::vector<uint8_t> &data);
   void reset_online_status_tracker_();
   void track_online_status_();
   void publish_device_unavailable_();

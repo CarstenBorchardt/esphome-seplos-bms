@@ -1,6 +1,8 @@
 #include "seplos_bms.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include <string>
+#include <format>
 
 namespace esphome {
 namespace seplos_bms {
@@ -11,12 +13,19 @@ static const uint8_t MAX_NO_RESPONSE_COUNT = 5;
 
 void SeplosBms::on_seplos_modbus_data(const std::vector<uint8_t> &data) {
   this->reset_online_status_tracker_();
-
+  
   // num_of_cells   frame_size   data_len
+  // Telemetry
   // 8              65           118 (0x76)   guessed
   // 14             77           142 (0x8E)
   // 15             79           146 (0x92)
   // 16             81           150 (0x96)
+  // RemoteInfo
+  //                55               (0x62)
+  if(data.size() == 55){
+    this->on_remoteinfo_data_(data);
+    return;
+  }
   if (data.size() >= 44 && data[8] >= 8 && data[8] <= 16) {
     this->on_telemetry_data_(data);
     return;
@@ -25,6 +34,162 @@ void SeplosBms::on_seplos_modbus_data(const std::vector<uint8_t> &data) {
   ESP_LOGW(TAG, "Unhandled data received (data_len: 0x%02X): %s", data[5],
            format_hex_pretty(&data.front(), data.size()).c_str());
 }
+
+void SeplosBms::on_remoteinfo_data_(const std::vector<uint8_t> &data) {
+  ESP_LOGD(TAG, "Remoteinfo frame (%d bytes) received", data.size());
+  ESP_LOGVV(TAG, "  %s", format_hex_pretty(&data.front(), data.size()).c_str());
+/*
+                             M  Byte Warning   
+                             1  1                                5  5            6
+                             6  8                                0  2            4 
+RemoteInfo:<2000460080620000 10 00000000000000000000000000000000 06 000000000000 0000 140000000000000300000100000000000000000001EB33>
+00:00 200046
+06:03 00 Return Code
+08:04 8062 Len Code
+12:06 data flag
+14:07 command 
+16:08 10 Number of cells:  (16)
+18:09 16 Bytes Warnings for each Cell
+50:25 06 Number of Temp Warnings (6)
+52:26 6 Bytes with temp warnings
+64:32 Charging Warnings
+66:33 Pack Voltage Warning
+68:34 Custom Warning
+70:35 Warning 1
+72:36 Warning 2
+74:37 Warning 3
+76:38 Warning 4
+78:39 Warning 5
+80:40 Warning 6
+82:41 Power Status
+84:42 Eq Status 
+88:44 System Status
+90:45 disconnect Status
+94:47 Warning 7
+96:48 Warning 8
+*/
+
+
+
+
+    std::string s;
+    std::string s_cellstatus="";
+    std::string s_equi="";
+    bool bEqui=false;
+    std::string s_disc="";
+
+    unsigned char u;
+    bool bWarning=false;
+
+    // 16 bit equilazation
+    uint16_t eq=data[42]+data[43]*256;
+    // 16 Bit Disconnected warning
+    uint16_t disc=data[45]+data[46]*256; 
+
+    for(int i=0; i<16; i++){
+      u=data[9+i];
+      if(u){
+        s_cellstatus+=std::format(" {: 2}:", i+1);
+        switch(u){
+          case 0: break;
+          case 1: s_cellstatus+="loL"; break;
+          case 2: s_cellstatus+="hiL"; break;
+          case 0xf0: s_cellstatus+="unk"; break;
+          default: s_cellstatus+=std::format("{:03}",u); break;
+        }
+      }
+      if( eq & (1<<i)){        
+        s_equi+= std::format(" {: 2}", i+1);
+        bEqui=true;
+      }
+      if( disc & (1<<i)){        
+        s_disc+= std::format(" {: 2}", i+1);
+      }
+    }
+    this->publish_state_(this->celldisconnect_text_sensor_,s_disc);
+    this->publish_state_(this->cellequalization_text_sensor_,s_equi);
+    this->publish_state_(this->cellstatus_text_sensor_,s_cellstatus);
+    this->publish_state_(this->equilization_binary_sensor_,bEqui);
+
+    s="";
+    u=data[36];
+    if(u) bWarning=true;
+
+    if(u & (1 << 0)) s+=" Cell-High-Volt-Warn";
+    if(u & (1 << 1)) s+=" Cell-High-Volt-Prot";
+    if(u & (1 << 2)) s+=" Cell-Low-Volt-Warn";
+    if(u & (1 << 3)) s+=" Cell-Low-Volt-Prot";
+    if(u & (1 << 4)) s+=" Pack-High-Volt-Warn";
+    if(u & (1 << 5)) s+=" Pack-High-Volt-Prot";
+    if(u & (1 << 6)) s+=" Pack-Low-Volt-Warn";
+    if(u & (1 << 7)) s+=" Pack-Low-Volt-Prot";
+
+    u=data[37];
+    if(u) bWarning=true;
+    if(u & (1 << 0)) s+=" Charge-High-Temp-Warn";
+    if(u & (1 << 1)) s+=" Charge-High-Temp-Prot";
+    if(u & (1 << 2)) s+=" Charge-Low-Temp-Warn";
+    if(u & (1 << 3)) s+=" Charge-Low-Temp-Prot";
+    if(u & (1 << 4)) s+=" Disch-High-Temp-Warn";
+    if(u & (1 << 5)) s+=" Disch-High-Temp-Prot";
+    if(u & (1 << 6)) s+=" Disch-Low-Temp-Warn";
+    if(u & (1 << 7)) s+=" Disch-Low-Temp-Prot";
+
+    u=data[38];
+    if(u) bWarning=true;
+    if(u & (1 << 0)) s+=" Amient-High-Temp-Warn";
+    if(u & (1 << 1)) s+=" Amient-High-Temp-Prot";
+    if(u & (1 << 2)) s+=" Amient-Low-Temp-Warn";
+    if(u & (1 << 3)) s+=" Amient-Low-Temp-Prot";
+    if(u & (1 << 4)) s+=" Comp-High-Temp-Warn";
+    if(u & (1 << 5)) s+=" Comp-High-Temp-Prot";
+    if(u & (1 << 6)) s+=" Heating";
+    if(u & (1 << 7)) s+=" Warn4Bit8";
+
+    u=data[39];
+    if(u) bWarning=true;
+    if(u & (1 << 0)) s+=" Charge-OverCurr-Warn";
+    if(u & (1 << 1)) s+=" Charge-OverCurr-Prot";
+    if(u & (1 << 2)) s+=" Disch-OverCurr-Warn";
+    if(u & (1 << 3)) s+=" Disch-OverCurr-Prot";
+    if(u & (1 << 4)) s+=" Trans-OverCurr-Prot";
+    if(u & (1 << 5)) s+=" Output-Short-Circuit";
+    if(u & (1 << 6)) s+=" Trans-OverCurr-Lock";
+    if(u & (1 << 7)) s+=" Output-Short-Circuit-Prot";
+
+    u=data[40];
+    if(u) bWarning=true;
+    if(u & (1 << 0)) s+=" Charge-High-Volt-Prot";
+    if(u & (1 << 1)) s+=" Int-Power-Wait";
+    if(u & (1 << 2)) s+=" Remain-Capacity-Warn";
+    if(u & (1 << 3)) s+=" Remain-Capacity-Prot";
+    if(u & (1 << 4)) s+=" Cell-Low-Volt-Forbit-Charging";
+    if(u & (1 << 5)) s+=" Output-Reverse-Connection-Prot";
+    if(u & (1 << 6)) s+=" Output-Connection-Failure";
+    if(u & (1 << 7)) s+=" Warn6Bit8";
+
+    this->publish_state_(this->warnings_text_sensor_,s);
+    this->publish_state_(this->warning_binary_sensor_, bWarning);
+
+    u=data[41];
+    s="";
+    if(u & (1 << 0)) s+=" Discharge";
+    if(u & (1 << 1)) s+=" Charge";
+    if(u & (1 << 2)) s+=" Cur Limit";
+    if(u & (1 << 3)) s+=" Heating";
+    this->publish_state_(powerstatus_text_sensor_,s);
+
+    s="";
+    u=data[44];
+    if(u & (1 << 0)) s+="Discharge";
+    if(u & (1 << 1)) s+=" Charge";
+    if(u & (1 << 2)) s+=" Float";
+    if(u & (1 << 4)) s+=" Standby";
+    if(u & (1 << 5)) s+=" PowerOff";
+    this->publish_state_(systemstatus_text_sensor_,s);
+
+}
+
 
 void SeplosBms::on_telemetry_data_(const std::vector<uint8_t> &data) {
   auto seplos_get_16bit = [&](size_t i) -> uint16_t {
@@ -208,12 +373,13 @@ float SeplosBms::get_setup_priority() const {
 
 void SeplosBms::update() { 
   static bool b_telemetry_or_remoteinfo=false;
-  if( b_tele{metry_or_remoteinfo){
-    // Telemetry
-    this->send(0x42, this->pack_); }
+  this->track_online_status_();
+  if( b_telemetry_or_remoteinfo){
+    // Telemetry expect 81 Byte
+    this->send(0x42, this->pack_); 
   }else{
-    // Remote info
-    this->send(0x44, this->pack_); }
+    // Remote info, expect 55 Byte
+    this->send(0x44, this->pack_); 
   }
   b_telemetry_or_remoteinfo=!b_telemetry_or_remoteinfo;
 }
@@ -237,7 +403,7 @@ void SeplosBms::publish_state_(text_sensor::TextSensor *text_sensor, const std::
     return;
 
   text_sensor->publish_state(state);
-}
+} 
 
 void SeplosBms::track_online_status_() {
   if (this->no_response_count_ < MAX_NO_RESPONSE_COUNT) {
@@ -256,7 +422,16 @@ void SeplosBms::reset_online_status_tracker_() {
 
 void SeplosBms::publish_device_unavailable_() {
   this->publish_state_(this->online_status_binary_sensor_, false);
+  this->publish_state_(this->warning_binary_sensor_, false);
+  this->publish_state_(this->equilization_binary_sensor_, false);
+
   this->publish_state_(this->errors_text_sensor_, "Offline");
+  this->publish_state_(this->systemstatus_text_sensor_, "Unknown");
+  this->publish_state_(this->powerstatus_text_sensor_, "Unknown");
+  this->publish_state_(this->warnings_text_sensor_, "Unknown");
+  this->publish_state_(this->celldisconnect_text_sensor_, "Unknown");
+  this->publish_state_(this->cellequalization_text_sensor_, "Unknown");
+  this->publish_state_(this->cellstatus_text_sensor_, "Unknown");
 
   this->publish_state_(this->min_cell_voltage_sensor_, NAN);
   this->publish_state_(this->max_cell_voltage_sensor_, NAN);

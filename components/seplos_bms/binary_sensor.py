@@ -10,11 +10,13 @@ DEPENDENCIES = ["seplos_bms"]
 CODEOWNERS = ["@syssi"]
 
 CONF_ONLINE_STATUS = "online_status"
-CONF_ALARM="alarm"
+CONF_WARNING="warning"
+CONF_EQUILIZATION="equilization"
 
 BINARY_SENSORS = [
     CONF_ONLINE_STATUS,
-    CONF_ALARM
+    CONF_WARNING,
+    CONF_EQUILIZATION,
 ]
 
 CONFIG_SCHEMA = SEPLOS_BMS_COMPONENT_SCHEMA.extend(
@@ -23,9 +25,9 @@ CONFIG_SCHEMA = SEPLOS_BMS_COMPONENT_SCHEMA.extend(
             device_class=DEVICE_CLASS_CONNECTIVITY,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
-        cv.Optional(CONF_ALARM): binary_sensor.binary_sensor_schema(
-            device_class=DEVICE_CLASS_CONNECTIVITY,
-            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        cv.Optional(CONF_WARNING): binary_sensor.binary_sensor_schema(
+        ),
+        cv.Optional(CONF_EQUILIZATION): binary_sensor.binary_sensor_schema(
         ),
     }
 )

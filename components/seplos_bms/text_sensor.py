@@ -10,11 +10,23 @@ DEPENDENCIES = ["seplos_bms"]
 CODEOWNERS = ["@syssi"]
 
 CONF_ERRORS = "errors"
+CONF_SYSSTATUS = "systemstatus"
+CONF_POWERSTATUS = "powerstatus"
+CONF_WARNINGS = "warnings"
+CONF_CELLDISCONNECT = "celldisconnect"
+CONF_CELLEQUI = "cellequalization"
+CONF_CELLSTATUS = "cellstatus"
 
 ICON_ERRORS = "mdi:alert-circle-outline"
 
 TEXT_SENSORS = [
+    CONF_CELLDISCONNECT,
+    CONF_CELLEQUI,
+    CONF_CELLSTATUS,
     CONF_ERRORS,
+    CONF_SYSSTATUS,
+    CONF_POWERSTATUS,
+    CONF_WARNINGS,
 ]
 
 CONFIG_SCHEMA = SEPLOS_BMS_COMPONENT_SCHEMA.extend(
@@ -23,6 +35,31 @@ CONFIG_SCHEMA = SEPLOS_BMS_COMPONENT_SCHEMA.extend(
             text_sensor.TextSensor,
             icon=ICON_ERRORS,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        ),
+        cv.Optional(CONF_SYSSTATUS): text_sensor.text_sensor_schema(
+            text_sensor.TextSensor,
+            icon=ICON_ERRORS,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        ),
+        cv.Optional(CONF_POWERSTATUS): text_sensor.text_sensor_schema(
+            text_sensor.TextSensor,
+
+        ),
+        cv.Optional(CONF_WARNINGS): text_sensor.text_sensor_schema(
+            text_sensor.TextSensor,
+
+        ),
+            cv.Optional(CONF_CELLDISCONNECT): text_sensor.text_sensor_schema(
+            text_sensor.TextSensor,
+
+        ),
+            cv.Optional(CONF_CELLEQUI): text_sensor.text_sensor_schema(
+            text_sensor.TextSensor,
+
+        ),
+            cv.Optional(CONF_CELLSTATUS): text_sensor.text_sensor_schema(
+            text_sensor.TextSensor,
+
         ),
     }
 )
